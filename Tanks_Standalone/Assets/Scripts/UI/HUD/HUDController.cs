@@ -11,7 +11,7 @@ namespace TanksTest.UI.HUD
     {
         private readonly IPlayerController _playerController;
 
-        public IHUDView View
+        public BaseHUDView View
         {
             get;
             private set;
@@ -19,7 +19,7 @@ namespace TanksTest.UI.HUD
 
         public event Action OnActionEvent;
 
-        public HUDController(IHUDView hudView, IPlayerController playerController)
+        public HUDController(BaseHUDView hudView, IPlayerController playerController)
         {
             if (hudView == null)
                 throw new ArgumentNullException("hudView");

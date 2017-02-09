@@ -9,23 +9,23 @@ using TanksTest.Core.Model;
 
 namespace TanksTest.UI.MainMenu
 {
-    public class MainMenuView : MonoBehaviour, IMainMenuView
+    public class MainMenuView : BaseMainMenuView
     {
         [SerializeField]
         private Button _btnStartGame;
 
-        public event Action OnStartGameClickEvent;
+        public override event Action OnStartGameClickEvent;
 
         private void Awake()
         {
             _btnStartGame.onClick.AddListener(new UnityAction(OnStartGameButtonClickHandler));
         }
 
-        public void UpdateView(IGameModel model)
+        public override void UpdateView(IGameModel model)
         {
         }
 
-        public void SetVisible(bool visible)
+        public override void SetVisible(bool visible)
         {
             gameObject.SetActive(visible);
         }

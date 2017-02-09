@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace TanksTest.UI
 {
-    public interface IUIController<T, TModel> where T : IUIView<TModel>
+    public interface IUIController<T, TModel> where T : UIView<TModel>
     {
         T View
         {

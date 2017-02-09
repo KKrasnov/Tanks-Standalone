@@ -5,59 +5,15 @@ using UnityEngine;
 
 namespace TanksTest.Core.Actor.Enemy
 {
-    public class Enemy : MonoBehaviour, IEnemy
+    public class Enemy : BaseEnemy
     {
-        public string Name
-        {
-            get
-            {
-                return gameObject.name;
-            }
-        }
+        [SerializeField]
+        private Rigidbody _rigidbody;
 
-        public Vector3 Position
-        {
-            get
-            {
-                return transform.position;
-            }
-            set
-            {
-                transform.position = value;
-            }
-        }
+        [SerializeField]
+        private float _damagePower;
 
-        public Vector3 Forward
-        {
-            get
-            {
-                return transform.forward;
-            }
-        }
-
-        public Vector3 Right
-        {
-            get
-            {
-                return transform.right;
-            }
-        }
-
-        public Vector3 Rotation
-        {
-            get
-            {
-                return transform.eulerAngles;
-            }
-            set
-            {
-                transform.eulerAngles = value;
-            }
-        }
-
-        private float _damagePower = 10000f;
-
-        public float DamagePower
+        public override float DamagePower
         {
             get
             {
@@ -67,14 +23,15 @@ namespace TanksTest.Core.Actor.Enemy
 
         private int _currentHealthPoints = 0;
 
-        public int CurrentHealthPoints
+        public override int CurrentHealthPoints
         {
             get
             {
                 return _currentHealthPoints;
             }
-            private set
+            protected set
             {
+                Debug.LogWarning(_currentHealthPoints + " " + value);
                 int prevHP = _currentHealthPoints;
                 _currentHealthPoints = value;
                 if (_currentHealthPoints > prevHP)
@@ -87,14 +44,15 @@ namespace TanksTest.Core.Actor.Enemy
                     if (OnDamageTakenEvent != null)
                         OnDamageTakenEvent(prevHP - _currentHealthPoints);
                 }
-
+                if (_currentHealthPoints <= 0)
+                    GameObject.Destroy(this.gameObject);
             }
         }
 
         [SerializeField]
         private int _maxHealthPoints = 100;
 
-        public int MaxHealthPoints
+        public override int MaxHealthPoints
         {
             get
             {
@@ -105,7 +63,7 @@ namespace TanksTest.Core.Actor.Enemy
         [SerializeField]
         private float _damageMultiplier = 0.5f;
 
-        public float DamageMultiplier
+        public override float DamageMultiplier
         {
             get
             {
@@ -116,7 +74,7 @@ namespace TanksTest.Core.Actor.Enemy
         [SerializeField]
         private float _acceleration = 15f;
 
-        public float Acceleration
+        public override float Acceleration
         {
             get
             {
@@ -127,7 +85,7 @@ namespace TanksTest.Core.Actor.Enemy
         [SerializeField]
         private float _maxSpeed = 15f;
 
-        public float MaxSpeed
+        public override float MaxSpeed
         {
             get
             {
@@ -138,7 +96,7 @@ namespace TanksTest.Core.Actor.Enemy
         [SerializeField]
         private float _rotationSpeed = 15f;
 
-        public float RotationSpeed
+        public override float RotationSpeed
         {
             get
             {
@@ -146,37 +104,78 @@ namespace TanksTest.Core.Actor.Enemy
             }
         }
 
-        public event Action<IActor> OnDisposeEvent;
-        public event Action<int> OnDamageTakenEvent;
-        public event Action<int> OnHealTakenEvent;
+        private Vector3 _moveDirection = Vector3.zero;
 
-        public void MoveTo(Vector3 destination)
+        [SerializeField]
+        private string _targetTag = "player";
+
+        public override event Action<BaseActor> OnDisposeEvent;
+        public override event Action<int> OnDamageTakenEvent;
+        public override event Action<int> OnHealTakenEvent;
+
+        private void Start()
         {
+            CurrentHealthPoints = _maxHealthPoints;
         }
 
-        public void RotateTo(Vector3 destination)
+        private void FixedUpdate()
         {
-            transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(destination), Time.deltaTime * _rotationSpeed);
+            Move();
         }
 
-        public void DoDamage(float damageAmount)
+        private void Move()
         {
-            CurrentHealthPoints -= (int)(Mathf.Abs(damageAmount) * _damageMultiplier);
+            if (_moveDirection == Vector3.zero) return;
+
+            if (Vector3.Dot(_moveDirection, _rigidbody.velocity.normalized) > 0)
+            {
+                Vector3 newVelocity = _moveDirection * _rigidbody.velocity.magnitude;
+                _rigidbody.velocity = newVelocity;
+            }
+
+            _rigidbody.AddForce(_moveDirection * _acceleration);
+
+            if (_rigidbody.velocity.magnitude > _maxSpeed)
+                _rigidbody.velocity = _rigidbody.velocity.normalized * _maxSpeed;
+
+            _moveDirection = Vector3.zero;
         }
 
-        public void DoHeal(float healAmount)
+        public override void MoveTo(Vector3 destination)
         {
-            CurrentHealthPoints += (int)Mathf.Abs(healAmount);
+            _moveDirection = destination;
         }
 
-        public void SetActive(bool active)
+        public override void RotateTo(Vector3 destination)
         {
-            gameObject.SetActive(active);
+            Vector3 destinationDirection = destination - transform.position;
+            _rigidbody.MoveRotation(Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(destinationDirection), Time.deltaTime * _rotationSpeed));
         }
 
-        public void Dispose()
+        public override void DoDamage(float damageAmount)
         {
+            CurrentHealthPoints -= Mathf.RoundToInt(Mathf.Abs(damageAmount) * _damageMultiplier);
+        }
 
+        public override void DoHeal(float healAmount)
+        {
+            CurrentHealthPoints +=  Mathf.RoundToInt(Mathf.Abs(healAmount));
+        }
+
+        private void OnCollisionEnter(Collision other)
+        {
+            if (other.gameObject.tag == _targetTag)
+            {
+                IDamagable _targetActor = other.gameObject.GetComponent<IDamagable>();
+                _targetActor.DoDamage(_damagePower);
+            }
+        }
+
+        private void OnDestroy()
+        {
+            StopAllCoroutines();
+            if (OnDisposeEvent != null)
+                OnDisposeEvent(this);
         }
     }
 }

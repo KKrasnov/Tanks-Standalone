@@ -2,18 +2,20 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 using TanksTest.Core.Actor;
 
 namespace TanksTest.Core.Camera
 {
-    public class CameraControllerHolder : ICameraController
+    public class CameraControllerHolder : BaseCameraController
     {
-        private readonly string _objectName;
+        [SerializeField]
+        private string _objectName;
 
-        private ICameraController _current;
+        private BaseCameraController _current;
 
-        private ICameraController _Current
+        private BaseCameraController _Current
         {
             get
             {
@@ -23,7 +25,7 @@ namespace TanksTest.Core.Camera
             }
         }
 
-        public Rect GameFieldConstrains
+        public override Rect GameFieldConstrains
         {
             get
             {
@@ -31,7 +33,15 @@ namespace TanksTest.Core.Camera
             }
         }
 
-        public IActor ObservedActor
+        public override Rect CameraRenderShape
+        {
+            get
+            {
+                return _Current.CameraRenderShape;
+            }
+        }
+
+        public override BaseActor ObservedActor
         {
             get
             {
@@ -43,19 +53,36 @@ namespace TanksTest.Core.Camera
             }
         }
 
-        public CameraControllerHolder(string objectName)
+        private void Awake()
         {
-            if (objectName == null)
-                throw new ArgumentNullException("objectName");
-
-            _objectName = objectName;
+            DontDestroyOnLoad(this.gameObject);
+            SceneManager.sceneLoaded += SceneManager_sceneLoaded;
         }
 
-        private ICameraController FindNewInstance()
+        void SceneManager_sceneLoaded(Scene arg0, LoadSceneMode arg1)
         {
-            ICameraController current = GameObject.Find(_objectName).GetComponent<ICameraController>();
+            if (_current == null)
+                _current = FindNewInstance();
+        }
+
+        private BaseCameraController FindNewInstance()
+        {
+            GameObject currentObj = GameObject.Find(_objectName);
+
+            if (currentObj == null)
+                return null;
+
+            BaseCameraController current = currentObj.GetComponent<BaseCameraController>();
+
+            if (current == null)
+                return null;
 
             return current;
+        }
+
+        private void OnDestroy()
+        {
+            SceneManager.sceneLoaded -= SceneManager_sceneLoaded;
         }
     }
 }

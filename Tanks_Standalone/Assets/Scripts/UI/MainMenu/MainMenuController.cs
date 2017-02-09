@@ -12,7 +12,7 @@ namespace TanksTest.UI.MainMenu
     {
         private readonly IGameModel _gameModel;
 
-        public IMainMenuView View
+        public BaseMainMenuView View
         {
             get;
             private set;
@@ -20,7 +20,7 @@ namespace TanksTest.UI.MainMenu
 
         public event Action OnStartGameEvent;
 
-        public MainMenuController(IMainMenuView mainMenuView, IGameModel gameModel)
+        public MainMenuController(BaseMainMenuView mainMenuView, IGameModel gameModel)
         {
             if (mainMenuView == null)
                 throw new ArgumentNullException("mainMenuView");

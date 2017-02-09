@@ -4,18 +4,20 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Events;
+using UnityEngine.SceneManagement;
 
 using TanksTest.Core.Model;
 
 namespace TanksTest.UI.MainMenu
 {
-    public class MainMenuViewHolder : IMainMenuView
+    public class MainMenuViewHolder : BaseMainMenuView
     {
-        private readonly string _objectName;
+        [SerializeField]
+        private string _objectName;
 
-        private IMainMenuView _current;
+        private BaseMainMenuView _current;
 
-        private IMainMenuView _Current
+        private BaseMainMenuView _Current
         {
             get
             {
@@ -25,39 +27,70 @@ namespace TanksTest.UI.MainMenu
             }
         }
 
-        public event Action OnStartGameClickEvent
+        private event Action _onStartGameClickEvent;
+
+        public override event Action OnStartGameClickEvent
         {
             add
             {
-                _Current.OnStartGameClickEvent += value;
+                if (_Current != null)
+                    _Current.OnStartGameClickEvent += value;
+                _onStartGameClickEvent += value;
             }
             remove
             {
-                _Current.OnStartGameClickEvent -= value;
+                if (_Current != null)
+                    _Current.OnStartGameClickEvent -= value;
+                _onStartGameClickEvent -= value;
             }
         }
 
-        public MainMenuViewHolder(string objectName)
+        private void Awake()
         {
-            if (objectName == null)
-                throw new ArgumentNullException("objectName");
-
-            _objectName = objectName;
+            DontDestroyOnLoad(this.gameObject);
+            SceneManager.sceneLoaded += SceneManager_sceneLoaded;
         }
 
-        private IMainMenuView FindNewInstance()
+        void SceneManager_sceneLoaded(Scene arg0, LoadSceneMode arg1)
         {
-            IMainMenuView current = GameObject.Find(_objectName).GetComponent<IMainMenuView>();
+            if (_current == null)
+                _current = FindNewInstance();
+        }
+
+        private BaseMainMenuView FindNewInstance()
+        {
+            GameObject currentObj = GameObject.Find(_objectName);
+
+            if (currentObj == null)
+                return null;
+
+            BaseMainMenuView current = currentObj.GetComponent<BaseMainMenuView>();
+
+            if (current == null)
+                return null;
+
+            current.OnStartGameClickEvent += _onStartGameClickEvent;
 
             return current;
         }
 
-        public void UpdateView(IGameModel model)
+        private void OnDestroy()
+        {
+            SceneManager.sceneLoaded -= SceneManager_sceneLoaded;
+        }
+
+        private void OnStartGameClickHandler()
+        {
+            if (_onStartGameClickEvent != null)
+                _onStartGameClickEvent();
+        }
+
+        public override void UpdateView(IGameModel model)
         {
             _Current.UpdateView(model);
         }
 
-        public void SetVisible(bool visible)
+        public override void SetVisible(bool visible)
         {
             _Current.SetVisible(visible);
         }

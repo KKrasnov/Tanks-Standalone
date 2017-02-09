@@ -8,84 +8,36 @@ using TanksTest.Core.Actor.Modules.Cannon;
 
 namespace TanksTest.Core.Actor.Tank
 {
-    public class Tank : MonoBehaviour, ITank
+    public class Tank : BaseTank
     {
         [SerializeField]
         private Transform _turret;
 
         [SerializeField]
-        private List<GameObject> _cannonObjects;
-
-        [SerializeField]
         private Rigidbody _rigidbody;
 
-        private ICannon _currentCannon;
+        [SerializeField]
+        private List<BaseCannon> _cannonList;
 
-        public ICannon CurrentCannon
+        private BaseCannon _currentCannon;
+
+        public override BaseCannon CurrentCannon
         {
             get
             {
                 return _currentCannon;
             }
-            private set
+            protected set
             {
-                _currentCannon.SetActive(false);
+                _currentCannon.gameObject.SetActive(false);
                 _currentCannon = value;
-                _currentCannon.SetActive(true);
-            }
-        }
-
-        public string Name
-        {
-            get
-            {
-                return gameObject.name;
-            }
-        }
-
-        public Vector3 Position
-        {
-            get
-            {
-                return transform.position;
-            }
-            set
-            {
-                transform.position = value;
-            }
-        }
-
-        public Vector3 Forward
-        {
-            get
-            {
-                return transform.forward;
-            }
-        }
-
-        public Vector3 Right
-        {
-            get
-            {
-                return transform.right;
-            }
-        }
-
-        public Vector3 Rotation
-        {
-            get
-            {
-                return transform.eulerAngles;
-            }
-            set
-            {
-                transform.eulerAngles = value;
+                _currentCannon.gameObject.SetActive(true);
             }
         }
 
         private float _damagePower = 10000f;
 
-        public float DamagePower
+        public override float DamagePower
         {
             get
             {
@@ -95,13 +47,13 @@ namespace TanksTest.Core.Actor.Tank
 
         private int _currentHealthPoints = 0;
 
-        public int CurrentHealthPoints
+        public override int CurrentHealthPoints
         {
             get
             {
                 return _currentHealthPoints;
             }
-            private set
+            protected set
             {
                 int prevHP = _currentHealthPoints;
                 _currentHealthPoints = value;
@@ -115,14 +67,15 @@ namespace TanksTest.Core.Actor.Tank
                     if (OnDamageTakenEvent != null)
                         OnDamageTakenEvent(prevHP - _currentHealthPoints);
                 }
-                 
+                if (_currentHealthPoints <= 0)
+                    GameObject.Destroy(this.gameObject);
             }
         }
 
         [SerializeField]
         private int _maxHealthPoints = 100;
 
-        public int MaxHealthPoints
+        public override int MaxHealthPoints
         {
             get
             {
@@ -133,7 +86,7 @@ namespace TanksTest.Core.Actor.Tank
         [SerializeField]
         private float _damageMultiplier = 0.5f;
 
-        public float DamageMultiplier
+        public override float DamageMultiplier
         {
             get
             {
@@ -144,7 +97,7 @@ namespace TanksTest.Core.Actor.Tank
         [SerializeField]
         private float _acceleration = 15f;
 
-        public float Acceleration
+        public override float Acceleration
         {
             get
             {
@@ -155,7 +108,7 @@ namespace TanksTest.Core.Actor.Tank
         [SerializeField]
         private float _maxSpeed = 15f;
 
-        public float MaxSpeed
+        public override float MaxSpeed
         {
             get
             {
@@ -166,7 +119,7 @@ namespace TanksTest.Core.Actor.Tank
         [SerializeField]
         private float _rotationSpeed = 15f;
 
-        public float RotationSpeed
+        public override float RotationSpeed
         {
             get
             {
@@ -177,7 +130,7 @@ namespace TanksTest.Core.Actor.Tank
         [SerializeField]
         private float _turretRotationSpeed = 15f;
 
-        public float TurretRotationSpeed
+        public override float TurretRotationSpeed
         {
             get
             {
@@ -185,26 +138,25 @@ namespace TanksTest.Core.Actor.Tank
             }
         }
 
-        private LinkedList<ICannon> _cannons = new LinkedList<ICannon>();
+        [SerializeField]
+        private string _targetTag = "enemy";
+
+        [SerializeField]
+        private LinkedList<BaseCannon> _cannons = new LinkedList<BaseCannon>();
 
         private Vector3 _moveDirection;
         private Vector3 _worldTurretDestination;
 
-        public event Action<IActor> OnDisposeEvent;
-        public event Action<int> OnDamageTakenEvent;
-        public event Action<int> OnHealTakenEvent;
+        public override event Action<BaseActor> OnDisposeEvent;
+        public override event Action<int> OnDamageTakenEvent;
+        public override event Action<int> OnHealTakenEvent;
 
 
         private void Awake()
         {
-            foreach (var obj in _cannonObjects)
-            {
-                ICannon cannon = obj.GetComponent<ICannon>();
-                _cannons.AddLast(cannon);
-                cannon.SetActive(false);
-            }
+            _cannons = new LinkedList<BaseCannon>(_cannonList);
             _currentCannon = _cannons.First.Value;
-            _currentCannon.SetActive(true);
+            _currentCannon.gameObject.SetActive(true);
         }
 
         private void Start()
@@ -224,6 +176,14 @@ namespace TanksTest.Core.Actor.Tank
 
         private void Move()
         {
+            if (_moveDirection == Vector3.zero) return;
+
+            if (Vector3.Dot(_moveDirection, _rigidbody.velocity.normalized) > 0)
+            {
+                Vector3 newVelocity = _moveDirection * _rigidbody.velocity.magnitude;
+                _rigidbody.velocity = newVelocity;
+            }
+            
             _rigidbody.AddForce(_moveDirection * _acceleration);
 
             if (_rigidbody.velocity.magnitude > _maxSpeed)
@@ -238,39 +198,40 @@ namespace TanksTest.Core.Actor.Tank
             _turret.eulerAngles = new Vector3(0, _turret.eulerAngles.y, 0);
         }
 
-        public void MoveTo(Vector3 destination)
+        public override void MoveTo(Vector3 destination)
         {
             _moveDirection = destination;
         }
 
-        public void RotateTo(Vector3 destination)
+        public override void RotateTo(Vector3 destination)
         {
             if (_moveDirection.normalized == -transform.forward)
                 destination = -destination;
-            transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(destination), Time.deltaTime * _rotationSpeed);
+
+            _rigidbody.MoveRotation(Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(destination), Time.deltaTime * _rotationSpeed));
         }
 
-        public void RotateTurretTo(Vector3 destination)
+        public override void RotateTurretTo(Vector3 destination)
         {
             _worldTurretDestination = (new Vector3(destination.x, _turret.position.y, destination.z) - _turret.position).normalized;
         }
 
-        public void DoDamage(float damageAmount)
+        public override void DoDamage(float damageAmount)
         {
-            CurrentHealthPoints -= (int)(Mathf.Abs(damageAmount) * _damageMultiplier);
+            CurrentHealthPoints -= Mathf.RoundToInt(Mathf.Abs(damageAmount) * _damageMultiplier);
         }
 
-        public void DoHeal(float healAmount)
+        public override void DoHeal(float healAmount)
         {
-            CurrentHealthPoints += (int)Mathf.Abs(healAmount);
+            CurrentHealthPoints += Mathf.RoundToInt(Mathf.Abs(healAmount));
         }
 
-        public void Shoot()
+        public override void Shoot()
         {
             _currentCannon.Fire(_turret.forward);
         }
 
-        public void ApplyNextCannon()
+        public override void ApplyNextCannon()
         {
             var node = _cannons.Find(_currentCannon);
             if (node.Next == null)
@@ -279,7 +240,7 @@ namespace TanksTest.Core.Actor.Tank
                 CurrentCannon = node.Next.Value;
         }
 
-        public void ApplyPrevCannon()
+        public override void ApplyPrevCannon()
         {
             var node = _cannons.Find(_currentCannon);
             if (node.Previous == null)
@@ -293,9 +254,20 @@ namespace TanksTest.Core.Actor.Tank
             gameObject.SetActive(active);
         }
 
-        public void Dispose()
+        private void OnCollisionEnter(Collision other)
         {
+            if (other.gameObject.tag == _targetTag)
+            {
+                IDamagable _targetActor = other.gameObject.GetComponent<IDamagable>();
+                _targetActor.DoDamage(_damagePower);
+            }
+        }
 
+        private void OnDestroy()
+        {
+            StopAllCoroutines();
+            if (OnDisposeEvent != null)
+                OnDisposeEvent(this);
         }
     }
 }

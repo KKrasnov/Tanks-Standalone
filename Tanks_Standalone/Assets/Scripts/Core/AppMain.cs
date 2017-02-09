@@ -5,7 +5,6 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 
 using TanksTest.UI.MainMenu;
-using TanksTest.UI.FinishScreen;
 
 namespace TanksTest.Core
 {
@@ -30,6 +29,7 @@ namespace TanksTest.Core
 
         public void Init()
         {
+            GameMain.Init();
             MainMenuController.OnStartGameEvent += OnStartGameHandler;
             GameMain.OnGameFinishedEvent += OnGameFinishedHandler;
             SceneManager.sceneLoaded += OnSceneLoadedHandler;
@@ -42,6 +42,7 @@ namespace TanksTest.Core
 
         public void DeInit()
         {
+            GameMain.Deinit();
         }
 
         private void OnStartGameHandler()

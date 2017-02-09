@@ -4,18 +4,20 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 using TanksTest.Core.Model;
 
 namespace TanksTest.UI.HUD
 {
-    public class HUDViewHolder : IHUDView
+    public class HUDViewHolder : BaseHUDView
     {
-        private readonly string _objectName;
+        [SerializeField]
+        private string _objectName;
 
-        private IHUDView _current;
+        private BaseHUDView _current;
 
-        private IHUDView _Current
+        private BaseHUDView _Current
         {
             get
             {
@@ -25,27 +27,44 @@ namespace TanksTest.UI.HUD
             }
         }
 
-        public HUDViewHolder(string objectName)
+        private void Awake()
         {
-            if (objectName == null)
-                throw new ArgumentNullException("objectName");
-
-            _objectName = objectName;
+            DontDestroyOnLoad(this.gameObject);
+            SceneManager.sceneLoaded += SceneManager_sceneLoaded;
         }
 
-        private IHUDView FindNewInstance()
+        void SceneManager_sceneLoaded(Scene arg0, LoadSceneMode arg1)
         {
-            IHUDView current = GameObject.Find(_objectName).GetComponent<IHUDView>();
+            if (_current == null)
+                _current = FindNewInstance();
+        }
+
+        private BaseHUDView FindNewInstance()
+        {
+            GameObject currentObj = GameObject.Find(_objectName);
+
+            if (currentObj == null)
+                return null;
+
+            BaseHUDView current = currentObj.GetComponent<BaseHUDView>();
+
+            if (current == null)
+                return null;
 
             return current;
         }
 
-        public void UpdateView(int[] model)
+        private void OnDestroy()
+        {
+            SceneManager.sceneLoaded -= SceneManager_sceneLoaded;
+        }
+
+        public override void UpdateView(int[] model)
         {
             _Current.UpdateView(model);
         }
 
-        public void SetVisible(bool visible)
+        public override void SetVisible(bool visible)
         {
             _Current.SetVisible(visible);
         }

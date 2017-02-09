@@ -5,63 +5,18 @@ using UnityEngine;
 
 namespace TanksTest.Core.Actor.Bullet
 {
-    public class Bullet : MonoBehaviour, IBullet
+    public class Bullet : BaseBullet
     {
         [SerializeField]
         private Rigidbody _rigidbody;
 
-        public string Name
-        {
-            get
-            {
-                return gameObject.name;
-            }
-        }
-
-        public Vector3 Position
-        {
-            get
-            {
-                return transform.position;
-            }
-            set
-            {
-                transform.position = value;
-            }
-        }
-
-        public Vector3 Forward
-        {
-            get
-            {
-                return transform.forward;
-            }
-        }
-
-        public Vector3 Right
-        {
-            get
-            {
-                return transform.right;
-            }
-        }
-
-        public Vector3 Rotation
-        {
-            get
-            {
-                return transform.eulerAngles;
-            }
-            set
-            {
-                transform.eulerAngles = value;
-            }
-        }
+        [SerializeField]
+        private string _targetTag;
 
         [SerializeField]
         private float _damagePower = 10f;
 
-        public float DamagePower
+        public override float DamagePower
         {
             get
             {
@@ -69,21 +24,15 @@ namespace TanksTest.Core.Actor.Bullet
             }
         }
 
-        [SerializeField]
-        private float _acceleration = 10f;
-
-        public float Acceleration
+        public override float Acceleration
         {
-            get
-            {
-                return _acceleration;
-            }
+            get;
         }
 
         [SerializeField]
         private float _maxSpeed = 30f;
 
-        public float MaxSpeed
+        public override float MaxSpeed
         {
             get
             {
@@ -93,7 +42,7 @@ namespace TanksTest.Core.Actor.Bullet
 
         private float _rotationSpeed = 0f;
 
-        public float RotationSpeed
+        public override float RotationSpeed
         {
             get
             {
@@ -103,39 +52,57 @@ namespace TanksTest.Core.Actor.Bullet
 
         private Vector3 _moveDirection;
 
-        public event Action<IActor> OnDisposeEvent;
+        public override event Action<BaseActor> OnDisposeEvent;
+
+        private void Awake()
+        {
+            StartCoroutine(DestroyAfterTime(10f));
+        }
 
         private void FixedUpdate()
         {
             Move();
         }
 
-        private void Move()
+        private IEnumerator DestroyAfterTime(float time)
         {
-            _rigidbody.AddForce(_moveDirection * _acceleration);
-
-            if (_rigidbody.velocity.magnitude > _maxSpeed)
-                _rigidbody.velocity = _rigidbody.velocity.normalized * _maxSpeed;
+            yield return new WaitForSeconds(time);
+            GameObject.Destroy(this.gameObject);
         }
 
-        public void MoveTo(Vector3 destination)
+        private void Move()
+        {
+            if (_moveDirection == Vector3.zero) return;
+            _rigidbody.velocity = _moveDirection * _maxSpeed;
+            _moveDirection = Vector3.zero;
+        }
+
+        public override void MoveTo(Vector3 destination)
         {
             _moveDirection = destination;
         }
 
-        public void RotateTo(Vector3 destination)
+        public override void RotateTo(Vector3 destination)
         {
             Quaternion lookRotation = Quaternion.LookRotation(destination);
             transform.rotation = lookRotation;
         }
 
-        public void SetActive(bool active)
+        private void OnCollisionEnter(Collision other)
         {
-            gameObject.SetActive(active);
+            if (other.gameObject.tag == _targetTag)
+            {
+                IDamagable targetActor = other.gameObject.GetComponent<IDamagable>();
+                targetActor.DoDamage(this._damagePower);
+            }
+            GameObject.Destroy(this.gameObject);
         }
 
-        public void Dispose()
+        private void OnDestroy()
         {
+            StopAllCoroutines();
+            if (OnDisposeEvent != null)
+                OnDisposeEvent(this);
         }
     }
 }

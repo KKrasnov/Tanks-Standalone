@@ -9,7 +9,7 @@ using TanksTest.UI;
 
 namespace TanksTest.UI.HUD
 {
-    public interface IHUDController : IUIController<IHUDView, int[]>
+    public interface IHUDController : IUIController<BaseHUDView, int[]>
     {
         
     }

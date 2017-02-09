@@ -9,7 +9,7 @@ namespace TanksTest.Core.Actor
 {
     public interface IShooter
     {
-        ICannon CurrentCannon
+        BaseCannon CurrentCannon
         {
             get;
         }

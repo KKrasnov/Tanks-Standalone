@@ -6,6 +6,7 @@ using UnityEngine.SceneManagement;
 
 using TanksTest.PlayerInput;
 
+using TanksTest.Core.Enemy.Spawner;
 using TanksTest.Core.Player;
 using TanksTest.Core.Model;
 
@@ -19,11 +20,13 @@ namespace TanksTest.Core
 
         private readonly IPlayerController PlayerController;
 
+        private readonly IEnemySpawner EnemySpawner;
+
         private bool _isGameStarted;
 
         public event Action OnGameFinishedEvent;
 
-        public GameMain(IHUDController hudController, IPlayerController playerController)
+        public GameMain(IHUDController hudController, IPlayerController playerController, IEnemySpawner enemySpawner)
         {
             if (hudController == null)
                 throw new ArgumentNullException("hudController");
@@ -34,16 +37,22 @@ namespace TanksTest.Core
                 throw new ArgumentNullException("playerController");
 
             PlayerController = playerController;
+
+            if (enemySpawner == null)
+                throw new ArgumentNullException("enemySpawner");
+
+            EnemySpawner = enemySpawner;
         }
 
         public void Init()
         {
-            PlayerController.OnPlayerObjectHealthChangedEvent += OnPlayerObjectHealthChangedHandler;
         }
 
         public void StartGame()
         {
+            PlayerController.OnPlayerObjectHealthChangedEvent += OnPlayerObjectHealthChangedHandler;
             PlayerController.StartGameProccess();
+            EnemySpawner.StartSpawnEnemies(10);
             HUDController.SetActive(true);
         }
 
@@ -51,12 +60,20 @@ namespace TanksTest.Core
         {
         }
 
+        public void Deinit()
+        {
+            PlayerController.StopGameProccess();
+            EnemySpawner.StopSpawnEnemies();
+        }
+
         private void FinishGame()
         {
             _isGameStarted = false;
 
             PlayerController.StopGameProccess();
+            EnemySpawner.StopSpawnEnemies();
             HUDController.SetActive(false);
+            PlayerController.OnPlayerObjectHealthChangedEvent -= OnPlayerObjectHealthChangedHandler;
 
             if(OnGameFinishedEvent != null)
                 OnGameFinishedEvent();

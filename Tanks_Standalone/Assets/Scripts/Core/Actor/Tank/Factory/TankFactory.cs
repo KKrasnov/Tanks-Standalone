@@ -6,20 +6,20 @@ using TanksTest.Core.Actor.Tank;
 
 namespace TanksTest.Core.Actor.Tank.Factory
 {
-    public class TankFactory : MonoBehaviour, ITankFactory
+    public class TankFactory : BaseTankFactory
     {
         [SerializeField]
         private GameObject _tankPrefab;
 
-        public ITank CreateObject()
+        public override BaseTank CreateObject()
         {
             GameObject tankObj = GameObject.Instantiate(_tankPrefab);
-            return tankObj.GetComponent<ITank>();
+            return tankObj.GetComponent<BaseTank>();
         }
 
-        public void DestroyObject(ITank tank)
+        public override void DestroyObject(BaseTank tank)
         {
-            tank.Dispose();
+            GameObject.Destroy(tank.gameObject);
         }
     }
 }

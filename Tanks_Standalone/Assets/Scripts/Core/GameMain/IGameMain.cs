@@ -14,5 +14,7 @@ namespace TanksTest.Core
         void StartGame();
 
         void Update();
+
+        void Deinit();
     }
 }

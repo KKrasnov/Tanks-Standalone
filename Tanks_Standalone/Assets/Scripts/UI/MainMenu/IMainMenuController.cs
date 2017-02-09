@@ -9,7 +9,7 @@ using TanksTest.UI;
 
 namespace TanksTest.UI.MainMenu
 {
-    public interface IMainMenuController : IUIController<IMainMenuView, IGameModel>
+    public interface IMainMenuController : IUIController<BaseMainMenuView, IGameModel>
     {
         event Action OnStartGameEvent;
     }

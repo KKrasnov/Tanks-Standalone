@@ -2,18 +2,20 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 using TanksTest.Core.Actor.Tank;
 
 namespace TanksTest.Core.Actor.Tank.Factory
 {
-    public class TankFactoryHolder : ITankFactory
+    public class TankFactoryHolder : BaseTankFactory
     {
-        private readonly string _objectName;
+        [SerializeField]
+        private string _objectName;
 
-        private ITankFactory _current;
+        private BaseTankFactory _current;
 
-        private ITankFactory _Current
+        private BaseTankFactory _Current
         {
             get
             {
@@ -23,29 +25,46 @@ namespace TanksTest.Core.Actor.Tank.Factory
             }
         }
 
-        public TankFactoryHolder(string objectName)
+        private void Awake()
         {
-            if (objectName == null)
-                throw new ArgumentNullException("objectName");
-
-            _objectName = objectName;
+            DontDestroyOnLoad(this.gameObject);
+            SceneManager.sceneLoaded += SceneManager_sceneLoaded;
         }
 
-        private ITankFactory FindNewInstance()
+        void SceneManager_sceneLoaded(Scene arg0, LoadSceneMode arg1)
         {
-            ITankFactory current = GameObject.Find(_objectName).GetComponent<ITankFactory>();
+            if (_current == null)
+                _current = FindNewInstance();
+        }
+
+        private BaseTankFactory FindNewInstance()
+        {
+            GameObject currentObj = GameObject.Find(_objectName);
+
+            if (currentObj == null)
+                return null;
+
+            BaseTankFactory current = currentObj.GetComponent<BaseTankFactory>();
+
+            if (current == null)
+                return null;
 
             return current;
         }
 
-        public ITank CreateObject()
+        private void OnDestroy()
+        {
+            SceneManager.sceneLoaded -= SceneManager_sceneLoaded;
+        }
+
+        public override BaseTank CreateObject()
         {
             return _Current.CreateObject();
         }
 
-        public void DestroyObject(ITank tank)
+        public override void DestroyObject(BaseTank obj)
         {
-            _Current.DestroyObject(tank);
+            _Current.DestroyObject(obj);
         }
     }
 }

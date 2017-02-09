@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Threading;
 using UnityEngine;
 
 using TanksTest.Core.Actor;
@@ -14,76 +13,109 @@ namespace TanksTest.Core.Enemy.Spawner
 {
     public class EnemySpawner : IEnemySpawner
     {
-        private readonly IEnemyFactory _enemyFactory;
+        private readonly BaseEnemyFactory _weakEnemyFactory;
+        private readonly BaseEnemyFactory _middleEnemyFactory;
+        private readonly BaseEnemyFactory _strongEnemyFactory;
 
-        private readonly ICameraController _cameraController;
+        private readonly BaseCameraController _cameraController;
 
-        private readonly int _enemiesCountLimit;
+        private int _enemiesCountLimit;
 
-        private Timer _spawnTimer;
+        private List<BaseEnemy> _enemies;
 
-        private List<IEnemy> _enemies;
+        private bool _isSpawning = false;
 
-        public EnemySpawner(IEnemyFactory enemyFactory, ICameraController cameraController, int enemiesCountLimit)
+        public EnemySpawner(BaseEnemyFactory weakEnemyFactory, BaseEnemyFactory middleEnemyFactory, BaseEnemyFactory strongEnemyFactory, BaseCameraController cameraController)
         {
-            if (enemyFactory == null)
-                throw new ArgumentNullException("enemyFactory");
+            if (weakEnemyFactory == null)
+                throw new ArgumentNullException("weakEnemyFactory");
 
-            _enemyFactory = enemyFactory;
+            _weakEnemyFactory = weakEnemyFactory;
+
+            if (middleEnemyFactory == null)
+                throw new ArgumentNullException("middleEnemyFactory");
+
+            _middleEnemyFactory = middleEnemyFactory;
+
+            if (strongEnemyFactory == null)
+                throw new ArgumentNullException("strongEnemyFactory");
+
+            _strongEnemyFactory = strongEnemyFactory;
 
             if (cameraController == null)
                 throw new ArgumentNullException("cameraController");
 
             _cameraController = cameraController;
 
-            _enemiesCountLimit = enemiesCountLimit;
-
-            _enemies = new List<IEnemy>();
+            _enemies = new List<BaseEnemy>();
         }
 
         private void SpawnNewEnemy()
         {
-            if (_enemies.Count >= _enemiesCountLimit) return;
+            if (!_isSpawning)
+                return;
+            if (_enemies.Count >= _enemiesCountLimit)
+                return;
 
-            IEnemy enemy = _enemyFactory.CreateObject();
+            int spawnSeed = UnityEngine.Random.Range(0, 10);
 
-            /*enemy.Position = new Vector3(Mathf.Clamp(0, _cameraController.GameFieldConstrains.x, _cameraController.GameFieldConstrains.x + _cameraController.GameFieldConstrains.width), 0,
-                Mathf.Clamp(0, _cameraController.GameFieldConstrains.y, _cameraController.GameFieldConstrains.y + _cameraController.GameFieldConstrains.height));*/
+            BaseEnemy enemy = null;
+
+            if (spawnSeed < 2)
+                enemy = _strongEnemyFactory.CreateObject();
+            else if (spawnSeed < 6)
+                enemy = _middleEnemyFactory.CreateObject();
+            else 
+                enemy = _weakEnemyFactory.CreateObject();
+
+            enemy.transform.position = GetNewPosition();
 
             enemy.OnDisposeEvent += OnEnemyDisposedHandler;
 
             _enemies.Add(enemy);
         }
 
+        private Vector3 GetNewPosition()
+        {
+            while (true)
+            {
+                Vector2 circlePos = UnityEngine.Random.insideUnitCircle.normalized * _cameraController.CameraRenderShape.width;
+                Vector3 newPos = new Vector3(_cameraController.ObservedActor.transform.position.x + circlePos.x, 0, _cameraController.ObservedActor.transform.position.z + circlePos.y);
+                if (newPos.x <= _cameraController.GameFieldConstrains.x || newPos.x >= _cameraController.GameFieldConstrains.x + _cameraController.GameFieldConstrains.width ||
+                    newPos.z <= _cameraController.GameFieldConstrains.y || newPos.z >= _cameraController.GameFieldConstrains.y + _cameraController.GameFieldConstrains.height)
+                    continue;
+                return newPos;
+            }
+        }
+
         public void Init()
         {
         }
 
-        public void StartSpawnEnemies()
+        public void StartSpawnEnemies(int enemiesCountLimit)
         {
-            _spawnTimer = new Timer(OnTimerTickedHandler, null, 0, 5000);
+            _isSpawning = true;
+            _enemiesCountLimit = enemiesCountLimit;
+            for (int i = 0; i < _enemiesCountLimit; i++)
+                SpawnNewEnemy();
         }
 
         public void StopSpawnEnemies()
         {
-            foreach (IEnemy enemy in _enemies)
-                _enemyFactory.DestroyObject(enemy);
-
-            if (_spawnTimer != null)
-                _spawnTimer.Dispose();
+            _isSpawning = false;
+            for (int i = 0; i < _enemies.Count; i++)
+            {
+                _weakEnemyFactory.DestroyObject(_enemies[i]);
+            }
 
             _enemies.Clear();
         }
 
-        private void OnEnemyDisposedHandler(IActor actor)
+        private void OnEnemyDisposedHandler(BaseActor actor)
         {
-            _enemies.Remove(actor as IEnemy);
-            SpawnNewEnemy();
-        }
-
-        private void OnTimerTickedHandler(object stateInfo)
-        {
-            if (_enemies.Count >= _enemiesCountLimit) _spawnTimer.Dispose();
+            BaseEnemy enemy = actor as BaseEnemy;
+            enemy.OnDisposeEvent -= OnEnemyDisposedHandler;
+            _enemies.Remove(enemy);
             SpawnNewEnemy();
         }
     }

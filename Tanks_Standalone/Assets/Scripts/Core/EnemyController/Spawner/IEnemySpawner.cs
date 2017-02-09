@@ -8,7 +8,7 @@ namespace TanksTest.Core.Enemy.Spawner
     {
         void Init();
 
-        void StartSpawnEnemies();
+        void StartSpawnEnemies(int enemiesCountLimit);
         void StopSpawnEnemies();
     }
 }

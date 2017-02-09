@@ -14,15 +14,15 @@ namespace TanksTest.Core.Player
 {
     public class PlayerController : IPlayerController
     {
-        private readonly ITankFactory _tankFactory;
+        private readonly BaseTankFactory _tankFactory;
 
-        private readonly ICameraController _cameraController;
+        private readonly BaseCameraController _cameraController;
 
-        private ITank _playerTank;
+        private BaseTank _playerTank;
 
         public event Action<int, int> OnPlayerObjectHealthChangedEvent;
 
-        public PlayerController(ITankFactory tankFactory, ICameraController cameraController)
+        public PlayerController(BaseTankFactory tankFactory, BaseCameraController cameraController)
         {
             if (tankFactory == null)
                 throw new ArgumentNullException("tankFactory");
@@ -99,22 +99,22 @@ namespace TanksTest.Core.Player
 
         private void OnMoveForwardClickHandler()
         {
-            _playerTank.MoveTo(_playerTank.Forward);
+            _playerTank.MoveTo(_playerTank.transform.forward);
         }
 
         private void OnMoveBackwardClickHandler()
         {
-            _playerTank.MoveTo(-_playerTank.Forward);
+            _playerTank.MoveTo(-_playerTank.transform.forward);
         }
 
         private void OnTurnLeftClickHandler()
         {
-            _playerTank.RotateTo(-_playerTank.Right);
+            _playerTank.RotateTo(-_playerTank.transform.right);
         }
 
         private void OnTurnRightClickHandler()
         {
-            _playerTank.RotateTo(_playerTank.Right);
+            _playerTank.RotateTo(_playerTank.transform.right);
         }
 
         private void OnPrevWeaponClickHandler()

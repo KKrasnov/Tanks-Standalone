@@ -17,7 +17,7 @@ namespace TanksTest.UI.Behaviour
         public void ApplyView(int current, int total)
         {
             _lblProgress.text = string.Format("{0}/{1}", current, total);
-            _imgProgress.rectTransform.localScale = new Vector3((current / total), 1, 1);
+            _imgProgress.rectTransform.localScale = new Vector3((float)current / (float)total, 1, 1);
         }
     }
 }
