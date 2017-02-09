@@ -1,0 +1,34 @@
+*.sln
+*.v11
+*.unityproj
+*.pidb
+*.csproj
+packages/*
+Assembly-*
+*.userprefs
+.DS_Store
+winx3d-runner-ios/*
+*.apk
+*.ipa
+*.rar
+*UpgradeLog*
+obj/
+*.suo
+build/*
+*TestModel*
+!*TestModel*.cs
+/tools/build/*
+winx-csharp.sln
+winx.sln
+winx3d-runner-csharp.sln
+winx3d-runner.sln
+
+#ignore folders
+Library
+Temp
+
+#Empty Folder
+
+#Fast Platform Switch
+/LocalCache/
+/.vs/
